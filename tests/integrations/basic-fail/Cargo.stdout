@@ -46,7 +46,7 @@ note: function defined here
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
@@ -88,7 +88,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +4 |
 +  |  ^
 +
-+error: aborting due to previous error
++error: aborting due to 1 previous error
 +
 
 
@@ -108,7 +108,7 @@ error: this file contains an unclosed delimiter
 4 |
   |  ^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 
 full stdout:
@@ -168,7 +168,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 +  |        ^^^
  
 -error: aborting doo to previous error
-+error: aborting due to previous error
++error: aborting due to 1 previous error
  
  For more information about this error, try `rustc --explain E0308`.
 
@@ -188,7 +188,7 @@ note: function defined here
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
@@ -242,18 +242,26 @@ error: `mismatched types` not found in diagnostics on line 8
   |
 
 error: there were 1 unmatched diagnostics
- --> tests/actual_tests/rustc_ice.rs:8:5
+ --> tests/actual_tests/rustc_ice.rs:8:9
   |
 8 |     add("42", 3);
-  |     ^^^^^^^^^^^^ Ice: no errors reported for args
+  |         ^^^^ Ice: mismatched types
   |
 
 full stderr:
-error: internal compiler error: no errors reported for args
- --> tests/actual_tests/rustc_ice.rs:8:5
+error: internal compiler error[E0308]: mismatched types
+ --> tests/actual_tests/rustc_ice.rs:8:9
   |
 8 |     add("42", 3);
-  |     ^^^^^^^^^^^^
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
 
 thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
 aborting due to `-Z treat-err-as-bug=1`
@@ -375,7 +383,7 @@ error: expected one of `!` or `::`, found `<eof>`
 7 | thing!(cake);
   |        ^^^^ expected one of `!` or `::`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 
 full stdout:
@@ -627,7 +635,7 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 10 | }
    |  ^ consider adding a `main` function to `tests/actual_tests_bless/revisions_bad.rs`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
 
@@ -657,7 +665,7 @@ help: consider cloning the value if the performance cost is acceptable
 11 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -687,7 +695,7 @@ help: consider cloning the value if the performance cost is acceptable
 11 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -717,7 +725,7 @@ help: consider cloning the value if the performance cost is acceptable
 10 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -854,7 +862,7 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 10 | }
    |  ^ consider adding a `main` function to `tests/actual_tests_bless_yolo/revisions_bad.rs`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
 
