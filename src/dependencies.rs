@@ -65,6 +65,14 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
         build.arg(format!("--target={target}"));
     }
 
+    if let Some(packages) = &info.build_std {
+        if packages.is_empty() {
+            build.arg("-Zbuild-std");
+        } else {
+            build.arg(format!("-Zbuild-std={packages}"));
+        }
+    }
+
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let set_locking = |cmd: &mut Command| match (
         &config.output_conflict_handling,
@@ -107,7 +115,7 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             cargo_metadata::Message::CompilerArtifact(artifact) => {
                 for ctype in &artifact.target.crate_types {
                     match ctype.as_str() {
-                        "proc-macro" | "lib" => {}
+                        "proc-macro" | "lib" | "rlib" => {}
                         _ => continue 'artifact,
                     }
                 }
@@ -115,7 +123,10 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
                     import_paths.insert(filename.parent().unwrap().into());
                 }
                 let package_id = artifact.package_id;
-                if let Some(prev) = artifacts.insert(package_id.clone(), Ok(artifact.filenames)) {
+                if let Some(prev) = artifacts.insert(
+                    package_id.clone(),
+                    Ok((artifact.target.name, artifact.filenames)),
+                ) {
                     artifacts.insert(
                         package_id.clone(),
                         Err(format!(
@@ -175,7 +186,7 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             .unwrap();
 
         // Then go over all of its dependencies
-        let dependencies = root
+        let mut dependencies = root
             .dependencies
             .iter()
             .filter(|dep| matches!(dep.kind, DependencyKind::Normal))
@@ -205,7 +216,7 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
                 let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
                 match artifacts.remove(id) {
-                    Some(Ok(artifacts)) => Some(Ok((name.replace('-', "_"), artifacts))),
+                    Some(Ok((_, artifacts))) => Some(Ok((name.replace('-', "_"), artifacts))),
                     Some(Err(what)) => Some(Err(eyre!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {id}: {what}"))),
                     None => {
                         if name == root.name {
@@ -222,6 +233,28 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             .collect::<Result<Vec<_>>>()?;
         let import_paths = import_paths.into_iter().collect();
         let import_libs = import_libs.into_iter().collect();
+
+        if info.build_std.is_some() {
+            let mut build_std_crates = HashSet::new();
+            build_std_crates.insert("core");
+            build_std_crates.insert("alloc");
+            build_std_crates.insert("proc_macro");
+            build_std_crates.insert("panic_unwind");
+            build_std_crates.insert("compiler_builtins");
+            build_std_crates.insert("std");
+            build_std_crates.insert("test");
+            build_std_crates.insert("panic_abort");
+
+            for (name, artifacts) in artifacts
+                .into_iter()
+                .filter_map(|(_, artifacts)| artifacts.ok())
+            {
+                if build_std_crates.remove(name.as_str()) {
+                    dependencies.push((format!("noprelude:{name}"), artifacts));
+                }
+            }
+        }
+
         return Ok(Dependencies {
             dependencies,
             import_paths,
@@ -240,6 +273,9 @@ pub struct DependencyBuilder {
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `crate_manifest_path`.
     pub program: CommandBuilder,
+    /// Build with [`build-std`](https://doc.rust-lang.org/1.78.0/cargo/reference/unstable.html#build-std),
+    /// which requires the nightly toolchain. The [`String`] can contain the standard library crates to build.
+    pub build_std: Option<String>,
 }
 
 impl Default for DependencyBuilder {
@@ -247,6 +283,7 @@ impl Default for DependencyBuilder {
         Self {
             crate_manifest_path: PathBuf::from("Cargo.toml"),
             program: CommandBuilder::cargo(),
+            build_std: None,
         }
     }
 }
@@ -294,6 +331,11 @@ impl Build for DependencyBuilder {
 pub fn build_dependencies(config: &Config, info: &DependencyBuilder) -> Result<Vec<OsString>> {
     let dependencies = build_dependencies_inner(config, info)?;
     let mut args = vec![];
+
+    if info.build_std.is_some() {
+        args.push("-Zunstable-options".into());
+    }
+
     for (name, artifacts) in dependencies.dependencies {
         for dependency in artifacts {
             args.push("--extern".into());

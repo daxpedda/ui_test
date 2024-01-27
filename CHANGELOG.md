@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Flag` trait for custom `//@` flags
 * `Build` trait for custom aux/dep build
     * `BuildManager` for deduplicating these builds on a per-`Config` basis
+* Support `-Zbuild-std` by add
+    * use `DependencyBuilder::build_std` to enable it
 
 ### Fixed
 
