@@ -167,6 +167,12 @@ fn build_dependencies_inner(
                     // the target. However, we do *not* do this for proc-macro crates as those will
                     // only ever show up as host crates anyway.
                     let skip_crate = 'skip_crate: {
+                        // https://github.com/oli-obk/ui_test/issues/361
+                        if ["js_bindgen_macro_shared", "proc_macro2"]
+                            .contains(&artifact.target.name.as_str())
+                        {
+                            break 'skip_crate false;
+                        }
                         let Some(filename) = artifact.filenames.first() else {
                             // No filename? No idea what this is...
                             break 'skip_crate false;
